@@ -3,14 +3,14 @@ import { SITE_TITLE, SITE_DESCRIPTION } from '../consts';
 import { client } from '../lib/tursoDb';
 import type { APIContext } from 'astro';
 
-let posts: any[] = [];
-try {
-  const allPostsResponse = await client.execute({
-    sql: "select posts.title, posts.description, posts.slug, posts.hero, authors.first_name, authors.last_name, authors.slug as author_slug, authors.avatar, posts.content, posts.created_at from posts left join authors on authors.id = posts.author_id order by posts.created_at desc;",
-    args: [],
-  });
-  posts = allPostsResponse.rows.map((post) => {
-    return {
+async function fetchPosts() {
+  let posts: any[] = [];
+  try {
+    const allPostsResponse = await client.execute({
+      sql: "SELECT posts.title, posts.description, posts.slug, posts.hero, authors.first_name, authors.last_name, authors.slug AS author_slug, authors.avatar, posts.content, posts.created_at FROM posts LEFT JOIN authors ON authors.id = posts.author_id ORDER BY posts.created_at DESC;",
+      args: [],
+    });
+    posts = allPostsResponse.rows.map((post) => ({
       published: false,
       title: post.title,
       description: post.description,
@@ -24,13 +24,16 @@ try {
         slug: post.slug,
         avatar: post.avatar
       }
-    }
-  });
-} catch (error) {
-  // TODO: Handle error and notify user
+    }));
+  } catch (error) {
+    console.error("Error fetching posts:", error);
+    // Maneja el error adecuadamente aquí
+  }
+  return posts;
 }
 
 export async function get(context: APIContext) {
+  const posts = await fetchPosts(); // Llama a la función asíncrona aquí
   return rss({
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
